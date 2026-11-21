@@ -1,0 +1,11 @@
+{
+  "integrations": {
+    "mcptoon": false,
+    "obsidian": false,
+    "codegraph": false
+  },
+  "claudeMemoryLink": true,
+  "summary": { "enabled": true, "model": "haiku" },
+  "backupDir": "~/.agent-handoff/backups",
+  "obsidian": { "profileSeed": "" }
+}

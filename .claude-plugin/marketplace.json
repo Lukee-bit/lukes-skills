@@ -1,0 +1,11 @@
+{
+  "name": "lukes-skills",
+  "owner": { "name": "Lukee-bit" },
+  "plugins": [
+    {
+      "name": "agent-handoff",
+      "source": "./plugins/agent-handoff",
+      "description": "Per-project agent memory and handoff that any harness can pick up. No dependencies."
+    }
+  ]
+}
