@@ -4,14 +4,37 @@ Original agent tools and skills by Luke, written from scratch and free of third-
 
 | Tool | What it does | Claude Code | OpenCode | Cursor |
 |---|---|---|---|---|
-| [agent-handoff](#agent-handoff) | Per-project memory in the repo: handoff, durable facts, a managed `AGENTS.md` block, `/save-handoff`. | plugin | via the bridge | skill + command on PATH |
-| [ask](#ask-and-modularize) | `/ask`: read-only Q&A that never changes anything. | plugin | copy command | copy to `.cursor/commands/` |
-| [modularize](#ask-and-modularize) | `/modularize <function>`: split one function into small documented helpers. | plugin | copy command | copy to `.cursor/commands/` |
-| [vault-bootstrap](#vault-bootstrap) | Turns a project folder into an Obsidian vault on the first session. | plugin | via the bridge | run the command |
+| [agent-handoff](#agent-handoff) | Per-project memory in the repo: handoff, durable facts, a managed `AGENTS.md` block, `/save-handoff`. | plugin | hooks through the bridge, command, skill | hooks, command, skill |
+| [ask](#ask-and-modularize) | `/ask`: read-only Q&A that never changes anything. | plugin | command | command |
+| [modularize](#ask-and-modularize) | `/modularize <function>`: split one function into small documented helpers. | plugin | command | command |
+| [vault-bootstrap](#vault-bootstrap) | Turns a project folder into an Obsidian vault on the first session. | plugin | hook through the bridge | session-start hook |
 | [opencode-hooks-bridge](#opencode-hooks-bridge) | Runs Claude-style command hooks from OpenCode events. | n/a | plugin file | n/a |
 
-Claude Code: `/plugin marketplace add Lukee-bit/lukes-skills`, then `/plugin install <tool>@lukes-skills`.
-Every tool needs only Python 3.8+ (Node for the bridge). Run the checks with `python -m unittest discover -s tests` and `node --test tests/bridge.test.js`.
+## Install
+
+Every tool installs on its own, or all five together, on Claude Code, Cursor and OpenCode. Needs Python 3.8+ (and Node for the bridge, which OpenCode already has).
+
+```
+git clone https://github.com/Lukee-bit/lukes-skills
+cd lukes-skills
+python install.py all                         # everything, on every harness found on this machine
+python install.py vault-bootstrap             # one tool
+python install.py ask modularize --harness cursor,opencode
+python install.py all --dry-run               # show what would change, change nothing
+python install.py all --uninstall             # remove exactly what the installer placed
+```
+
+On Windows you can double-click `Install.cmd` (macOS: `Install.command`) to install everything.
+
+| Harness | What `install.py` does |
+|---|---|
+| Claude Code | Runs `claude plugin marketplace add` and `claude plugin install <tool>@lukes-skills`. Without the `claude` command it prints those two lines. You can run them yourself: `/plugin marketplace add Lukee-bit/lukes-skills`, then `/plugin install <tool>@lukes-skills`. |
+| Cursor | Copies commands to `~/.cursor/commands/` and skills to `~/.cursor/skills/`, and adds hooks to `~/.cursor/hooks.json` (`sessionStart`, `beforeSubmitPrompt`, `afterFileEdit`, `sessionEnd`). |
+| OpenCode | Copies commands to `~/.config/opencode/commands/` and skills to `~/.config/opencode/skills/`, installs the bridge into `~/.config/opencode/plugins/` and adds the tool's hooks to `claude-hooks-bridge.json`. |
+
+The installer is safe to re-run. It never adds a hook twice, keeps any file it replaces as `<file>.bak-YYYYMMDD`, and records what it placed in `~/.local/share/lukes-skills/installed.json` so `--uninstall` removes only that. Scripts that hooks call are copied to `~/.local/share/lukes-skills/<tool>/`. If another setup already provides the same hooks (for example an existing agent-handoff hook in Cursor), the installer says so and leaves it alone; `--force` adds them anyway. Options: `--harness claude,cursor,opencode`, and `--source` (the marketplace source for Claude Code: a GitHub `owner/repo` or a folder).
+
+Run the checks with `python -m unittest discover -s tests` and `node --test tests/bridge.test.js`.
 
 ## agent-handoff
 
@@ -36,7 +59,7 @@ Settings are read from `~/.config/agent-handoff/config.json`, then the project's
 ## ask and modularize
 
 Two prompt-only commands. `/ask <question>` puts the agent in a read-only mode: it explores, cites `file:line`, suggests changes and never makes them. `/modularize <function>` refactors one function into well-named helpers with validation, explicit errors and documentation, keeping behavior.
-Claude Code gets both from the plugins. For OpenCode copy `plugins/<tool>/opencode/commands/<tool>.md` into `~/.config/opencode/commands/`. For Cursor copy the Claude version into `.cursor/commands/`.
+Claude Code gets both from the plugins. `install.py` places the OpenCode version (`plugins/<tool>/opencode/commands/<tool>.md`) in `~/.config/opencode/commands/` and a Cursor version in `~/.cursor/commands/`.
 
 ## vault-bootstrap
 
@@ -45,7 +68,7 @@ Setting `integrations.localRestApi` (off by default, `~/.config/vault-bootstrap/
 
 ## opencode-hooks-bridge
 
-An OpenCode plugin file. Copy `plugins/opencode-hooks-bridge/opencode/claude-hooks-bridge.js` to `~/.config/opencode/plugins/`. It runs command hooks written for the Claude Code hook contract when OpenCode fires the matching event (session start and end, prompt, context, compaction, before and after a tool). A hook that answers `permissionDecision: "deny"` blocks the tool call. Configure hooks and context files in `~/.config/opencode/claude-hooks-bridge.json` (see `config.example.json`). With no config it bridges `agent-handoff` if that is installed. It fails open on any error; `LUKES_BRIDGE=0` turns it off.
+An OpenCode plugin file (`python install.py opencode-hooks-bridge`, or copy `plugins/opencode-hooks-bridge/opencode/claude-hooks-bridge.js` to `~/.config/opencode/plugins/`). It runs command hooks written for the Claude Code hook contract when OpenCode fires the matching event (session start and end, prompt, context, compaction, before and after a tool). A hook that answers `permissionDecision: "deny"` blocks the tool call. Configure hooks and context files in `~/.config/opencode/claude-hooks-bridge.json` (see `config.example.json`). With no config it bridges `agent-handoff` if that is installed. `LUKES_BRIDGE_CONFIG` names another config file. It runs session-start hooks on the first prompt if OpenCode's created event is missed. It fails open on any error; `LUKES_BRIDGE=0` turns it off.
 
 ## Used by
 

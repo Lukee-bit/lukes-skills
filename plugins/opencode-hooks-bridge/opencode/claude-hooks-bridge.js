@@ -14,7 +14,7 @@
  *   tool execute.before  -> PreToolUse hooks          (a {"permissionDecision":"deny"} answer blocks the call)
  *   tool execute.after   -> PostToolUse hooks         (file-editing tools only)
  *
- * Config: ~/.config/opencode/claude-hooks-bridge.json
+ * Config: ~/.config/opencode/claude-hooks-bridge.json (or the file named by LUKES_BRIDGE_CONFIG)
  *   { "hooks": [ { "event": "PostToolUse", "matcher": "Edit|Write", "command": "my-hook arg", "timeout": 5000 } ],
  *     "contextFiles": [ { "path": ".agent/handoff.md", "max": 6000 } ] }
  * Without a config file the bridge uses the `agent-handoff` tool of Luke's skills when it is installed.
@@ -76,7 +76,7 @@ function defaultConfig() {
 
 function loadConfig() {
   try {
-    const c = JSON.parse(fs.readFileSync(CONFIG, "utf8"));
+    const c = JSON.parse(fs.readFileSync(process.env.LUKES_BRIDGE_CONFIG || CONFIG, "utf8"));
     return { hooks: Array.isArray(c.hooks) ? c.hooks : [], contextFiles: Array.isArray(c.contextFiles) ? c.contextFiles : [] };
   } catch {
     return defaultConfig();
@@ -131,6 +131,13 @@ async function setup(ctx) {
   const byEvent = (e, tool) => cfg.hooks.filter((h) => h.event === e && matches(h, tool));
   const pending = new Map(); // sessionID -> queued prompt-hook output
   const ended = new Set();
+  const started = new Set();
+  // SessionStart runs once per session: on the created event, or on the first prompt if that event was missed.
+  const start = (sessionID) => {
+    if (started.has(sessionID)) return;
+    started.add(sessionID);
+    for (const h of byEvent("SessionStart")) run(h, { session_id: sessionID, cwd: dir, source: "startup" }, dir, false);
+  };
   const end = (sessionID) => {
     if (ended.has(sessionID)) return;
     ended.add(sessionID);
@@ -146,7 +153,7 @@ async function setup(ctx) {
           if (!sameLocation(event)) continue;
           const sessionID = event.data?.sessionID;
           if (typeof sessionID !== "string" || !sessionID) continue;
-          if (event.type === "session.created") for (const h of byEvent("SessionStart")) run(h, { session_id: sessionID, cwd: dir, source: "startup" }, dir, false);
+          if (event.type === "session.created") start(sessionID);
           if (event.type === "session.deleted") { end(sessionID); pending.delete(sessionID); }
         } catch {}
       }
@@ -154,6 +161,7 @@ async function setup(ctx) {
   })();
 
   await ctx.session.hook("prompt", (event) => {
+    start(event.sessionID);
     for (const h of byEvent("UserPromptSubmit")) {
       const out = run(h, { session_id: event.sessionID, cwd: dir }, dir, true).trim();
       if (out) pending.set(event.sessionID, out.slice(0, 2000));
@@ -187,9 +195,9 @@ async function setup(ctx) {
 
   return () => {
     controller.abort();
-    for (const id of pending.keys()) end(id);
+    for (const id of started) end(id);
     pending.clear();
   };
 }
 
-module.exports = { id: "claude-hooks-bridge", setup, _test: { mapInput, matches, denyReason, readContext, TOOL_MAP } };
+module.exports = { id: "claude-hooks-bridge", setup, _test: { mapInput, matches, denyReason, readContext, loadConfig, TOOL_MAP } };

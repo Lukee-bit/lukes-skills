@@ -68,3 +68,41 @@ test("LUKES_BRIDGE=0 turns it off", async () => {
   delete process.env.LUKES_BRIDGE;
   assert.strictEqual(called, 0);
 });
+test("LUKES_BRIDGE_CONFIG points the bridge at another config file", () => {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), "bridge-cfg-"));
+  const f = path.join(d, "alt.json");
+  fs.writeFileSync(f, JSON.stringify({ hooks: [{ event: "SessionStart", command: "x" }], contextFiles: [{ path: "a.md" }] }));
+  process.env.LUKES_BRIDGE_CONFIG = f;
+  try {
+    const c = t.loadConfig();
+    assert.strictEqual(c.hooks.length, 1);
+    assert.strictEqual(c.contextFiles[0].path, "a.md");
+  } finally {
+    delete process.env.LUKES_BRIDGE_CONFIG;
+  }
+});
+test("SessionStart runs once, on the first prompt when the created event is missed", async () => {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), "bridge-ss-"));
+  const out = path.join(d, "out.log");
+  const cfg = path.join(d, "cfg.json");
+  const cmd = `node -e "require('fs').appendFileSync(process.argv[1],'x')" "${out.split(path.sep).join("/")}"`;
+  fs.writeFileSync(cfg, JSON.stringify({ hooks: [{ event: "SessionStart", command: cmd }], contextFiles: [] }));
+  process.env.LUKES_BRIDGE_CONFIG = cfg;
+  const hooks = {};
+  const ctx = {
+    location: { directory: d },
+    event: { subscribe: () => (async function* () {})() },
+    session: { hook: async (n, f) => { hooks["s." + n] = f; } },
+    tool: { hook: async () => {} },
+  };
+  try {
+    const dispose = await bridge.setup(ctx);
+    hooks["s.prompt"]({ sessionID: "a" });
+    hooks["s.prompt"]({ sessionID: "a" });
+    await new Promise((r) => setTimeout(r, 1500));
+    assert.strictEqual(fs.readFileSync(out, "utf8"), "x");
+    dispose();
+  } finally {
+    delete process.env.LUKES_BRIDGE_CONFIG;
+  }
+});

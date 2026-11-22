@@ -1,6 +1,6 @@
 {
   "name": "agent-handoff",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Per-project agent memory and handoff: .agent/, a managed AGENTS.md block, an automatic status snapshot and /save-handoff, so any agent can resume where the last one stopped. No dependencies.",
   "author": { "name": "Lukee-bit" },
   "homepage": "https://github.com/Lukee-bit/lukes-skills",
