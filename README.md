@@ -42,7 +42,3 @@ Settings are read from `~/.config/agent-handoff/config.json`, then the project's
 ## Used by
 
 [Luke's claude-config](https://github.com/Lukee-bit/claude-config) installs agent-handoff with all three integrations on.
-
-## License
-
-Copyright (c) 2026 Lukee-bit. All rights reserved. See `LICENSE`.
