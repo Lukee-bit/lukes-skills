@@ -1,0 +1,10 @@
+{
+  "name": "vault-bootstrap",
+  "version": "1.0.0",
+  "description": "Turns a project folder into an Obsidian vault on the first session: starter files, Home and Notes pages, and registration with the Obsidian app. No dependencies.",
+  "author": {
+    "name": "Lukee-bit"
+  },
+  "homepage": "https://github.com/Lukee-bit/lukes-skills",
+  "license": "UNLICENSED"
+}

@@ -1,0 +1,8 @@
+{
+  "name": "modularize",
+  "version": "1.0.0",
+  "description": "/modularize <function>: refactor one function into small documented helpers with validation and explicit error handling, keeping its behavior.",
+  "author": { "name": "Lukee-bit" },
+  "homepage": "https://github.com/Lukee-bit/lukes-skills",
+  "license": "UNLICENSED"
+}

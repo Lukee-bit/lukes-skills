@@ -1,11 +1,12 @@
 {
   "name": "lukes-skills",
   "owner": { "name": "Lukee-bit" },
+  "metadata": { "description": "Original agent tools by Luke: per-project handoff memory, read-only ask mode, a modularize command, an Obsidian vault bootstrap and an OpenCode hooks bridge. No dependencies." },
   "plugins": [
-    {
-      "name": "agent-handoff",
-      "source": "./plugins/agent-handoff",
-      "description": "Per-project agent memory and handoff that any harness can pick up. No dependencies."
-    }
+    { "name": "agent-handoff", "source": "./plugins/agent-handoff", "description": "Per-project agent memory and handoff that any harness can pick up. No dependencies." },
+    { "name": "ask", "source": "./plugins/ask", "description": "/ask: a read-only question-and-answer mode that never changes anything." },
+    { "name": "modularize", "source": "./plugins/modularize", "description": "/modularize <function>: refactor one function into small documented helpers, keeping its behavior." },
+    { "name": "vault-bootstrap", "source": "./plugins/vault-bootstrap", "description": "Turns a project folder into an Obsidian vault on the first session. No dependencies." },
+    { "name": "opencode-hooks-bridge", "source": "./plugins/opencode-hooks-bridge", "description": "Runs Claude-style command hooks from OpenCode events (OpenCode plugin file; copy it into place)." }
   ]
 }
