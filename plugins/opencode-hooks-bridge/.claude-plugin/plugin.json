@@ -1,0 +1,8 @@
+{
+  "name": "opencode-hooks-bridge",
+  "version": "1.0.0",
+  "description": "An OpenCode plugin file that runs Claude-style command hooks (JSON on stdin, optional JSON decision on stdout) from OpenCode events. Copy opencode/claude-hooks-bridge.js into ~/.config/opencode/plugins/.",
+  "author": { "name": "Lukee-bit" },
+  "homepage": "https://github.com/Lukee-bit/lukes-skills",
+  "license": "UNLICENSED"
+}

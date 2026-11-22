@@ -1,3 +1,11 @@
 __pycache__/
 *.pyc
 .ah-test-*/
+# >>> agent-handoff (managed)
+.env
+.DS_Store
+.agent/cache/
+.agent/.buffer/
+.claude/settings.local.json
+*.pre-handoff-*
+# <<< agent-handoff

@@ -1,0 +1,12 @@
+{
+  "hooks": [
+    { "event": "SessionStart", "command": "agent-handoff init" },
+    { "event": "UserPromptSubmit", "command": "agent-handoff prompt", "timeout": 5000 },
+    { "event": "PostToolUse", "matcher": "Edit|Write|MultiEdit", "command": "agent-handoff tool", "timeout": 5000 },
+    { "event": "SessionEnd", "command": "agent-handoff end" }
+  ],
+  "contextFiles": [
+    { "path": ".agent/handoff.md", "max": 6000 },
+    { "path": ".agent/memory/MEMORY.md", "max": 2500 }
+  ]
+}

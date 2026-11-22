@@ -1,0 +1,10 @@
+{
+  "integrations": {
+    "localRestApi": false
+  },
+  "localRestApi": {
+    "pluginDir": "~/obsidian-plugins",
+    "keyFile": "~/.config/vault-bootstrap/obsidian.env",
+    "trust": true
+  }
+}

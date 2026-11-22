@@ -1,0 +1,8 @@
+{
+  "name": "ask",
+  "version": "1.0.0",
+  "description": "/ask: a read-only question-and-answer mode. The agent explores the code, cites file:line and never changes anything.",
+  "author": { "name": "Lukee-bit" },
+  "homepage": "https://github.com/Lukee-bit/lukes-skills",
+  "license": "UNLICENSED"
+}
