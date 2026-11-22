@@ -168,9 +168,18 @@ def init(d: Path):
 
 
 def main():
-    a = sys.argv[1:]
+    cursor = "--cursor" in sys.argv  # Cursor hook mode: project from the JSON payload, JSON-only stdout
+    a = [x for x in sys.argv[1:] if x != "--cursor"]
     cmd = a.pop(0) if a and a[0] in ("init", "trust") else "init"
-    d = Path(a[0] if a else os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd())
+    d = a[0] if a else os.environ.get("CLAUDE_PROJECT_DIR")
+    if not d and cursor:
+        try:
+            d = (json.load(sys.stdin).get("workspace_roots") or [None])[0]
+        except Exception:
+            d = None
+    if cursor:
+        sys.stdout = sys.stderr
+    d = Path(d or os.getcwd())
     try:
         d = d.resolve()
         if not d.is_dir():

@@ -111,10 +111,17 @@ def _mklink(link: Path, target: Path):
         subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(target)], check=True, capture_output=True)
 
 
+CURSOR = "--cursor" in sys.argv  # Cursor hook mode: different payload and output shapes
+_INPUT = None
+
+
 def project_dir():
     a = [x for x in sys.argv[2:] if not x.startswith("-")]
-    d = a[0] if a else os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
-    return Path(d).resolve()
+    d = a[0] if a else os.environ.get("CLAUDE_PROJECT_DIR")
+    if not d and CURSOR:
+        roots = hook_input().get("workspace_roots") or []
+        d = roots[0] if roots else None
+    return Path(d or os.getcwd()).resolve()
 
 
 def eligible(d: Path) -> bool:
@@ -399,7 +406,7 @@ def context(d: Path):
     m = d / ".agent" / "memory" / "MEMORY.md"
     if m.exists():
         out += "\n\n[agent-handoff] Project memory index (.agent/memory/MEMORY.md):\n" + m.read_text()[:2500]
-    print(out)
+    print(json.dumps({"additional_context": out}) if CURSOR else out)
 
 
 def nested() -> bool:
@@ -407,10 +414,19 @@ def nested() -> bool:
 
 
 def hook_input() -> dict:
-    try:
-        return json.load(sys.stdin) if not sys.stdin.isatty() else {}
-    except Exception:
-        return {}
+    global _INPUT
+    if _INPUT is None:
+        try:
+            _INPUT = json.load(sys.stdin) if not sys.stdin.isatty() else {}
+        except Exception:
+            _INPUT = {}
+        if not isinstance(_INPUT, dict):
+            _INPUT = {}
+    return _INPUT
+
+
+def session_id(i: dict):
+    return i.get("session_id") or i.get("conversation_id")
 
 
 def buf_path(d: Path, sid) -> Path:
@@ -437,7 +453,7 @@ def record_tool(d: Path):
         return
     i = hook_input()
     ti = i.get("tool_input") or {}
-    f = ti.get("file_path") or ti.get("notebook_path")
+    f = ti.get("file_path") or ti.get("notebook_path") or i.get("file_path")
     if not f:
         return
     p = Path(f)
@@ -448,7 +464,7 @@ def record_tool(d: Path):
         return
     if rel.startswith(".agent/"):
         return
-    b = buf_path(d, i.get("session_id"))
+    b = buf_path(d, session_id(i))
     guard(d, b)
     b.parent.mkdir(parents=True, exist_ok=True)
     with b.open("a") as fh:
@@ -459,7 +475,7 @@ def prompt_nudge(d: Path):
     """UserPromptSubmit: say nothing (zero tokens) unless >=15 unsaved edits and the handoff is >30 min old; then at most one nudge per 30 min."""
     if nested() or not eligible(d):
         return
-    b = buf_path(d, hook_input().get("session_id"))
+    b = buf_path(d, session_id(hook_input()))
     if not b.exists() or len(buffered(b)) < 15:
         return
     h = d / ".agent" / "handoff.md"
@@ -524,7 +540,7 @@ def end(d: Path):
     if nested() or not eligible(d):
         return
     snapshot(d)
-    b = buf_path(d, hook_input().get("session_id"))
+    b = buf_path(d, session_id(hook_input()))
     if not b.exists():
         return
     if len(buffered(b)) < 3 or not load_config(d)["summary"].get("enabled", True):
@@ -552,7 +568,10 @@ def main():
     elif cmd == "tool":
         record_tool(d)
     elif cmd == "prompt":
-        prompt_nudge(d)
+        if CURSOR:  # Cursor cannot inject context from this hook; it only needs to be told to go on
+            print(json.dumps({"continue": True}))
+        else:
+            prompt_nudge(d)
     elif cmd == "end":
         end(d)
     else:
